@@ -5,10 +5,10 @@ int main() {
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
 
     // Configure PC6 as output (push-pull, no pull-up/pull-down)
-    GPIOC->MODER &= ~(3U << (6 * 2)); // Clear mode bits for PC6
-    GPIOC->MODER |= (1U << (6 * 2));  // Set PC6 as output
-    GPIOC->OTYPER &= ~(1U << 6);      // Set PC6 as push-pull
-    GPIOC->PUPDR &= ~(3U << (6 * 2)); // No pull-up, no pull-down
+    GPIOC->MODER &= ~((1<<13)|(1<<12)) ;// Clear mode bits for PC6
+    GPIOC->MODER |= ((1<<12));  // Set PC6 as output
+    GPIOC->OTYPER &= ~(1<< 6);      // Set PC6 as push-pull
+    GPIOC->PUPDR &= ~((1<<13)|(1<<12)); // No pull-up, no pull-down
 
     // Enable TIM1 clock
     RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
