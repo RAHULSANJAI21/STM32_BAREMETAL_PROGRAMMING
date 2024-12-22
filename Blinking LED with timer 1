@@ -1,0 +1,32 @@
+#include "stm32f401xe.h"
+
+int main() {
+    // Enable GPIOC clock
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+
+    // Configure PC6 as output (push-pull, no pull-up/pull-down)
+    GPIOC->MODER &= ~(3U << (6 * 2)); // Clear mode bits for PC6
+    GPIOC->MODER |= (1U << (6 * 2));  // Set PC6 as output
+    GPIOC->OTYPER &= ~(1U << 6);      // Set PC6 as push-pull
+    GPIOC->PUPDR &= ~(3U << (6 * 2)); // No pull-up, no pull-down
+
+    // Enable TIM1 clock
+    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
+
+    // Configure TIM1
+    TIM1->PSC = 15999;          // Prescaler: Divides 16 MHz clock to 1 kHz
+    TIM1->ARR = 5000;            // Auto-reload value for 1-second interval
+    TIM1->CNT = 0;              // Reset counter
+    TIM1->CR1 |= TIM_CR1_CEN;   // Enable TIM1 counter
+
+    // Set initial GPIO state
+    GPIOC->ODR &= ~(1 << 6);    // Ensure PC6 is low initially (LED off)
+
+    while (1) {
+        // Check if the update interrupt flag (UIF) is set
+        if (TIM1->SR & TIM_SR_UIF) {
+            TIM1->SR &= ~TIM_SR_UIF; // Clear the UIF flag
+            GPIOC->ODR ^= (1 << 6);  // Toggle PC6 (Toggle LED)
+        }
+    }
+}
