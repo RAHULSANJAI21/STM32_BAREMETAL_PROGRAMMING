@@ -15,7 +15,7 @@ int main() {
 
     // Configure TIM1
     TIM1->PSC = 15999;          // Prescaler: Divides 16 MHz clock to 1 kHz
-    TIM1->ARR = 5000;            // Auto-reload value for 1-second interval
+    TIM1->ARR = 1000;            // Auto-reload value for 1-second interval
     TIM1->CNT = 0;              // Reset counter
     TIM1->CR1 |= TIM_CR1_CEN;   // Enable TIM1 counter
 
