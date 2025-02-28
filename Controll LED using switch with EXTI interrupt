@@ -1,0 +1,55 @@
+#include<stm32f401xe.h>
+void delay(long delay)
+{
+    while(delay--);
+}
+void GPIO_INIT()
+{
+    RCC->AHB1ENR &=~((1<<0)|(1<<2));//reset the A & C port clk enable
+    RCC->AHB1ENR |=((1<<0)|(1<<2));//set the A & C port clk
+    GPIOA->MODER &=~((1<<11)|(1<<10));//reset the PA5 bits
+    GPIOA->MODER |=((1<<10));//set the bit inorder to make it as output
+    GPIOA->OTYPER =0X0000;
+    GPIOA->OSPEEDR=0X00000000;
+    GPIOC->MODER &=~((1<<27)|(1<<26));//reset the PC15 bits
+    GPIOC->PUPDR &=~((1<<27)|(1<<26));//PC15 as pull down resistor
+    GPIOC->PUPDR |=(1<<26);//
+}
+void EXTI_INIT()
+{
+    RCC->APB2ENR &=~((1<<14));//Reset the sysconfig bit
+    RCC->APB2ENR |=((1<<14));//SET sysconfig clk bit
+    SYSCFG->EXTICR[3]&=~((0XF<<1));
+    SYSCFG->EXTICR[3]|=(1<<5);//MAP PC13 TO PC13
+    EXTI->IMR &=~((1<<13));
+    EXTI->IMR |=(1<<13);//DISABLE THE MASK
+    EXTI->FTSR |=(1<<13);//ENABLE FALLING EDGE TRIGGER
+    EXTI->RTSR &=(1<<13);//Disable rising edge trigger
+    NVIC_EnableIRQ(EXTI15_10_IRQn);//enable interrupt
+  NVIC_SetPriority(EXTI15_10_IRQn,15);//set the priority
+}
+
+
+// main() runs in its own thread in the OS
+int main()
+{
+    GPIO_INIT();
+    EXTI_INIT();
+    while (true) {
+    
+    }
+
+}
+void EXTI15_10_IRQHandler()
+{
+    delay(8000000);
+    if(EXTI->PR & (1<<13))//Checks if interrupt occurs
+     {
+         EXTI->PR |=(1<<13);//clears the PR bit
+         GPIOA->ODR ^=(1<<5);
+     }
+     
+    
+}
+
+
