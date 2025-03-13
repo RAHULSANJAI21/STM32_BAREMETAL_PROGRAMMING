@@ -7,7 +7,7 @@ int main()
     
     while(1)
     {
-        if(GPIOC->IDR &(1<<13))//check if switch is pressed
+        if(!(GPIOC->IDR &(1<<13)))//check if switch is pressed
         {
             GPIOA->ODR|=0x00000020;//turn on led
         }
