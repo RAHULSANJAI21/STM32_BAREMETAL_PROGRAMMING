@@ -1,0 +1,47 @@
+#include "stm32f4xx.h"
+
+void SPI2_GPIO_INIT() {
+    RCC->AHB1ENR |= (1 << 1); // Enable GPIOB clock
+
+    // Set PB12, PB13, PB14, PB15 as Alternate Function (AF5 - SPI2)
+    GPIOB->MODER |= (2 << (13 * 2)) | (2 << (14 * 2)) | (2 << (15 * 2));
+    GPIOB->AFR[1] |= (5 << ((13 - 8) * 4)) | (5 << ((14 - 8) * 4)) | (5 << ((15 - 8) * 4));
+
+    // Configure PB12 (CS) as Output
+    GPIOB->MODER &= ~((1 << 0)|(1<<1));
+    GPIOB->MODER |=(1<<0);
+
+}
+
+void SPI2_INIT() {
+    RCC->APB1ENR |= (1 << 14); // Enable SPI2 clock
+    SPI2->CR1 = 0x0000; // Reset SPI config
+    SPI2->CR1 |= (3 << 3); // 	Baud Rate (fPCLK / 16)
+    SPI2->CR1 |= (1 << 2); // Master Mode
+    SPI2->CR1 |= (3 << 8); // NSS Software Mode (SSI, SSM)
+    SPI2->CR1 |= (1 << 6); // Enable SPI2
+}
+
+void SPI2_TRANSMIT(uint8_t data) {
+  //  GPIOB->ODR &= ~(1 << 12); // CS LOW (Start communication)
+    while (!(SPI2->SR & (1 << 1))); // Wait until TX buffer is empty
+    SPI2->DR = data; // Send data
+    //while (SPI2->SR & (1 << 7)); // Wait for transmission to complete
+   // GPIOB->ODR |= (1 << 12); // CS HIGH (End communication)
+    while (!(SPI2->SR & (1 << 0)));//wait until receiver buffer is empty
+    uint8_t received=SPI2->DR;
+    if(received == 0x44)
+    {
+    	GPIOB->ODR ^=(1<<0);
+    }
+}
+
+int main() {
+    SPI2_GPIO_INIT();
+    SPI2_INIT();
+
+    while (1) {
+        SPI2_TRANSMIT(0x55); // Send 0x55 to ESP32
+        for (int i = 0; i < 1000000; i++); // Delay
+    }
+}
