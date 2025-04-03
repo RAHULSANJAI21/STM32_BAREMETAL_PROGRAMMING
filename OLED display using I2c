@@ -1,0 +1,159 @@
+#include "stm32f4xx.h"
+//#include <string.h>
+uint8_t A_Char[] = {0xFF, 0x08, 0x08, 0x08, 0xFF,0x00,0xFF,0X91,0x91,0x00,0xFF,0x01,0x01,0x00,0xFF,0x01,0x01,0x00,0x7E,0x81,0x81,0x81,0x7E};
+int i=0;
+// I2C OLED Parameters
+#define SSD1306_ADDR  0x3C << 1  // 0x3C is 7-bit address, left-shift for 8-bit
+#define SCREEN_WIDTH  128
+#define SCREEN_HEIGHT 64
+
+// Function Prototypes
+void I2C1_Init(void);
+void I2C1_Write(uint8_t address, uint8_t reg, uint8_t data);
+void SSD1306_Init(void);
+void SSD1306_Clear(void);
+void SSD1306_SetCursor(uint8_t x, uint8_t y);
+void SSD1306_WriteChar(char c);
+void SSD1306_WriteString(char *str);
+void delay(uint32_t time);
+
+int main(void)
+{
+    // Initialize I2C and SSD1306
+    I2C1_Init();
+    SSD1306_Init();
+
+    // Clear display and print text
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x20); // Set memory addressing mode
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x01); // Horizontal Addressing Mode
+    //I2C1_Write(SSD1306_ADDR,0x00,0xDA);
+    //I2C1_Write(SSD1306_ADDR, 0x40, 0x22);
+    for (uint8_t page = 0; page < 8; page++) {  // 8 pages (0-7)
+
+
+        I2C1_Write(SSD1306_ADDR, 0x00, 0xB0 | page); // Set page address
+        I2C1_Write(SSD1306_ADDR, 0x00, 0x00);        // Set column address (lower nibble)
+        I2C1_Write(SSD1306_ADDR, 0x00, 0x10);        // Set column address (higher nibble)
+
+        for (uint8_t col = 0; col < 132; col++) { // 128 columns (0-127)
+        	if(col>=63 && col<86&& page==1)
+        	{
+        		I2C1_Write(SSD1306_ADDR, 0x40, A_Char[i++]);
+
+        	}
+        	else
+        	{
+            I2C1_Write(SSD1306_ADDR, 0x40, 0x00);  // Write zero to clear pixel data
+        }
+        }
+    }
+        	I2C1_Write(SSD1306_ADDR, 0x00, 0xD3); // Display offset
+        I2C1_Write(SSD1306_ADDR, 0x00, 0x10);
+
+   // I2C1_Write(SSD1306_ADDR, 0x00, 0xA1);
+//);
+    while(1)
+    {
+    	I2C1_Write(SSD1306_ADDR, 0x00, 0xD3); // Display offset
+    	        I2C1_Write(SSD1306_ADDR, 0x00, 0x10);
+    }
+}
+
+// Initialize I2C1 (PB8 = SCL, PB9 = SDA)
+void I2C1_Init(void)
+{
+    RCC->APB1ENR |=(1<<21) ; // Enable I2C1 clock
+    RCC->AHB1ENR |= (1<<1);   // Enable GPIOB clock
+
+    // Set PB8 & PB9 as Alternate function (I2C1)
+    GPIOB->MODER |= (2 << 16) | (2 << 18);
+    GPIOB->OTYPER |= (1 << 8) | (1 << 9);  // Open-drain
+    GPIOB->AFR[1] |= (4 << 0) | (4 << 4);  // AF4 (I2C1)
+
+    // Configure I2C
+    I2C1->CR1 = (1<<15);  // Reset I2C
+    I2C1->CR1 = 0;              // Clear reset
+    I2C1->CR2 = 16;             // APB1 = 16 MHz
+    I2C1->CCR = 80;             // Standard mode 100kHz
+    I2C1->TRISE = 17;           // Maximum rise time
+    I2C1->CR1 |= (1<<0);    // Enable I2C
+}
+
+// I2C Write Function
+void I2C1_Write(uint8_t address, uint8_t reg, uint8_t data)
+{
+    while (I2C1->SR2 & (1<<1));  // Wait if busy
+
+    I2C1->CR1 |= (1<<8);       // Start condition
+    while (!(I2C1->SR1 & (1<<0)));
+
+    I2C1->DR = address;               // Send address
+    while (!(I2C1->SR1 & (1<<1)));//wait for ADDR bit to set
+    (void)I2C1->SR2;//clear the ADDR
+
+
+    I2C1->DR = reg;                   // Send command/data byte
+    while (!(I2C1->SR1 & (1<<7)));
+
+    I2C1->DR = data;
+    while (!(I2C1->SR1 & (1<<7)));
+
+    I2C1->CR1 |= (1<<9);        // Stop condition
+}
+
+// Initialize SSD1306
+void SSD1306_Init(void)
+{
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xAE); // Display OFF
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xD5); // Set clock div
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x80); // Default setting
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xA8); // Multiplex
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x1F);
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xD3); // Display offset
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x00);
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x40); // Start line
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xA6); // Normal display
+   I2C1_Write(SSD1306_ADDR,0x00,0xA1);
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xAF); // Display ON
+}
+
+// Clear the screen
+void SSD1306_Clear(void)
+{
+    for (uint16_t i = 0; i < 1024; i++)
+    {
+        I2C1_Write(SSD1306_ADDR, 0x40, 0x00);
+    }
+}
+
+// Set cursor position
+void SSD1306_SetCursor(uint8_t x, uint8_t y)
+{
+    I2C1_Write(SSD1306_ADDR, 0x00, 0xB0 + y);
+    I2C1_Write(SSD1306_ADDR, 0x00, x & 0x0F);
+    I2C1_Write(SSD1306_ADDR, 0x00, 0x10 | (x >> 4));
+}
+
+// Write a character
+void SSD1306_WriteChar(char c)
+{
+    for (uint8_t i = 0; i < 5; i++)
+    {
+        I2C1_Write(SSD1306_ADDR, 0x40, 0xFF); // Dummy font
+    }
+}
+
+// Write a string
+void SSD1306_WriteString(char *str)
+{
+    while (*str)
+    {
+        SSD1306_WriteChar(*str++);
+    }
+}
+
+// Simple delay
+void delay(uint32_t time)
+{
+    for (volatile uint32_t i = 0; i < time * 1000; i++);
+}
